@@ -6,6 +6,10 @@
 let g:common_fonts = ["Inconsolata", "Ubuntu Mono", "Consolas", "Terminal"]
 let g:default_size = 13
 
+function! SetFont(name, size)
+    exec "set guifont=". FormatFont(a:name, a:size)
+endfunction
+
 " Formats:
 "    Unix: font\ name:hSIZE:format
 "    Mac: font\ name:hSIZE:format
@@ -27,7 +31,64 @@ function! CheckFont(name)
         return 0
     endif
 endfunction
+
+" can be negative
+function! IncreaseFontSize(n)
+    call SetFont(GetCurrentFont(), GetCurrentFontSize() + a:n)
+endfunction
+function! SetFontSize(n)
+    call SetFont(GetCurrentFont(), a:n)
+endfunction
+
+
+function! GetCurrentFontSize()
+    let font = &guifont
+
+    if font == ""
+        " Not set!
+        return 12
+    elseif has("gui_macvim")
+        " dostuff ..
+        " split(":")
+    elseif has("gui_gtk2")
+        " dostuff ..
+        " split(":")
+    elseif has("gui_win32") || has("gui_win64")
+        if font =~? ":h\\d\\+"
+            let name = split(font, ":")[-1][1:]
+            return name
+        else
+            " Default not set to 12 - This will/could be wrong if size has
+            " been removed
+            return 12
+        endif
+        return name
+    else
+        " OH NO Console!
+    endif
+
+endfunction
     
+function! GetCurrentFont()
+    let font = &guifont
+
+    if font == ""
+        " Not set! TODO return Something
+        return ""
+    elseif has("gui_macvim")
+        " dostuff ..
+        " split(":")
+    elseif has("gui_gtk2")
+        " dostuff ..
+        " split(":")
+    elseif has("gui_win32") || has("gui_win64")
+        let name = split(font, ":")[0]
+        let name = substitute(name, "_", " ", "g")
+        return name
+    else
+        " OH NO Console!
+    endif
+endfunction
 
 function! FormatFont(name, size)
     if has("gui_macvim")
@@ -40,9 +101,8 @@ function! FormatFont(name, size)
         let name = substitute(a:name, " ", "_", "g")
         return name . ":h" . a:size
     else
-        " OH NO
+        " OH NO Console!
     endif
-    "
 endfunction
 
 function! WindowsReadFonts()
@@ -71,7 +131,10 @@ function! ListUseableFonts()
             call add(useable, i)
         endif
     endfor
-    echom len(useable)
+    echom len(useable) . " fonts available"
+    for i in useable
+        echom i
+    endfor
     return useable
 endfunction
 
