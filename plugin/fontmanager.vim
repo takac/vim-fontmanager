@@ -7,7 +7,15 @@ let g:common_fonts = ["Inconsolata", "Ubuntu Mono", "Consolas", "Terminal"]
 let g:default_size = 13
 
 function! SetFont(name, size)
-    exec "set guifont=". FormatFont(a:name, a:size)
+    if a:name =~? "\\<bold\\>.*\\<italic\\>" || a:name =~? "\\<italic\\>.*\\<bold\\>"
+        exec "set guifont=". FormatFont(a:name, "bi", a:size)
+    elseif a:name =~? "\\<bold\\>"
+        exec "set guifont=". FormatFont(a:name, "b", a:size)
+    elseif a:name =~? "\\<italic\\>"
+        exec "set guifont=". FormatFont(a:name, "i", a:size)
+    else
+        exec "set guifont=". FormatFont(a:name, "", a:size)
+    endif
 endfunction
 
 " Formats:
@@ -17,7 +25,7 @@ endfunction
 
 function! CheckFont(name)
     let current = &guifont
-    let check = FormatFont(a:name, 12)
+    let check = FormatFont(a:name,"", 12)
     try
     exec "set guifont=" . check
     catch /Invalid.*/
@@ -66,8 +74,12 @@ function! GetCurrentFontSize()
     else
         " OH NO Console!
     endif
-
 endfunction
+
+function! SetBoldFont(name, size)
+    exec "set guifont=". FormatFont(a:name, "b", a:size)
+endfunction
+
     
 function! GetCurrentFont()
     let font = &guifont
@@ -90,7 +102,7 @@ function! GetCurrentFont()
     endif
 endfunction
 
-function! FormatFont(name, size)
+function! FormatFont(name, style, size)
     if has("gui_macvim")
         let name = substitute(a:name, " ", "\\ ", "g")
         return name . ":h" . a:size
@@ -99,7 +111,7 @@ function! FormatFont(name, size)
         return name . "\\ " . a:size
     elseif has("gui_win32") || has("gui_win64")
         let name = substitute(a:name, " ", "_", "g")
-        return name . ":h" . a:size
+        return name . ":" . a:style . ":h" . a:size
     else
         " OH NO Console!
     endif
@@ -121,20 +133,32 @@ function! WindowsReadFonts()
     endfor
     return fonts
 endfunction
+
+function! ShowList()
+	topleft new
+	setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile nowrap
+    let b:fonts = sort(UseableFonts())
+    for i in b:fonts
+        call append("$", i)
+    endfor
+	silent 1d
+	nnoremap <buffer> <CR> :call SetFont(b:fonts[line(".")-1], GetCurrentFontSize())<CR>
+    nnoremap <buffer> q <C-W>q
+	nnoremap <buffer> <2-LeftMouse> :call SetFont(b:fonts[line(".")-1], GetCurrentFontSize())<CR>
+endfunction
   
-function! ListUseableFonts()
-    " let fonts = ["Consolas", "Jibe", "Jab", "Fixedsys"]
+function! UseableFonts()
+    if exists("g:avialable_fonts")
+        return g:avialable_fonts
+    endif
+
     let fonts = WindowsReadFonts()
-    let useable = []
+    let g:avialable_fonts = []
     for i in fonts
         if CheckFont(i)
-            call add(useable, i)
+            call add(g:avialable_fonts, i)
         endif
     endfor
-    echom len(useable) . " fonts available"
-    for i in useable
-        echom i
-    endfor
-    return useable
+    return g:avialable_fonts
 endfunction
 
