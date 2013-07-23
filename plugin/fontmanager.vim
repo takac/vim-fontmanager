@@ -2,9 +2,18 @@
 "
 " Cycle through common fonts
 " different fonts for different syntaxs
-
-let g:common_fonts = ["Inconsolata", "Ubuntu Mono", "Consolas", "Terminal"]
+" IN VIMRC =
+"
+" let g:fontman_font = "Ubuntu Mono derivative Powerline"
+" let g:fontman_size = 13
+" let g:fontman_syntax_map = { "java" : "Consolas", "txt" : "Fixedsys" }
+"
+"let g:fonts = ["Inconsolata", "Ubuntu Mono", "Consolas", "Terminal"]
 let g:default_size = 13
+
+function! SetFontAndStyle(name, style, size)
+	exec "set guifont=". FormatFont(a:name, a:style, a:size)
+endfunction
 
 function! SetFont(name, size)
     if a:name =~? "\\<bold\\>.*\\<italic\\>" || a:name =~? "\\<italic\\>.*\\<bold\\>"
@@ -26,8 +35,10 @@ endfunction
 function! CheckFont(name)
     let current = &guifont
     let check = FormatFont(a:name,"", 12)
+	let t_list = [ check ]
+	call writefile(t_list, expand("~") . "/tmp-font.txt", "")
     try
-    exec "set guifont=" . check
+		exec "set guifont=" . check
     catch /Invalid.*/
     endtry
     " echom check . " == " . &guifont
@@ -63,12 +74,12 @@ function! GetCurrentFontSize()
         " split(":")
     elseif has("gui_win32") || has("gui_win64")
         if font =~? ":h\\d\\+"
-            let name = split(font, ":")[-1][1:]
-            return name
+			let size = matchstr(font, ":h\\zs\\d\\+") 
+			echo size
+            return size
         else
-            " Default not set to 12 - This will/could be wrong if size has
-            " been removed
-            return 12
+			" If size has been removed from guifont for some reason...
+            return g:default_size
         endif
         return name
     else
@@ -85,7 +96,7 @@ function! GetCurrentFont()
     let font = &guifont
 
     if font == ""
-        " Not set! TODO return Something
+        " Not set! Probably a console
         return ""
     elseif has("gui_macvim")
         " dostuff ..
@@ -110,7 +121,7 @@ function! FormatFont(name, style, size)
         let name = substitute(a:name, " ", "\\ ", "g")
         return name . "\\ " . a:size
     elseif has("gui_win32") || has("gui_win64")
-        let name = substitute(a:name, " ", "_", "g")
+        let name = substitute(a:name, " ", "_", "g")[:30]
         return name . ":" . a:style . ":h" . a:size
     else
         " OH NO Console!
@@ -118,15 +129,12 @@ function! FormatFont(name, style, size)
 endfunction
 
 function! WindowsReadFonts()
-    let tmp_file = 'out.txt'
+    let tmp_file = expand("$TMP") . '\out.txt'
     exec 'silent !regedit /e ' . tmp_file . ' "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"'
     let fonts = []
-    for line in readfile("out.txt")
-        let x = substitute(line, '[^A-Za-z0-9 :.,?@#~}{=)(*&^%$£!-]', "", "g")
-        " Bitstream kills vim!
-        if x =~? "bitstream"
-            continue
-        elseif x =~ " ("
+    for line in readfile(tmp_file)
+        let x = substitute(line, '[^A-Za-z0-9 :.,?@#~}{=)(*&^%$Â£!-]', "", "g")
+        if x =~ " ("
             let f = split(x, " (")
             call add(fonts, f[0])
         endif
@@ -134,14 +142,29 @@ function! WindowsReadFonts()
     return fonts
 endfunction
 
-function! ShowList()
-	topleft new
-	setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile nowrap
+function! ShowFontList()
+	if exists("t:bufferName")
+		let n = bufwinnr(t:bufferName)
+		if n > -1
+			exec n . " wincmd w"
+		else
+			topleft new
+			exec "buffer " . t:bufferName
+		endif
+	else
+		let t:bufferName = "font_1"
+		topleft new
+		silent! exec "edit " . t:bufferName
+	endif
+	setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile nowrap modifiable
+	0,$d
     let b:fonts = sort(UseableFonts())
     for i in b:fonts
         call append("$", i)
     endfor
 	silent 1d
+	setlocal so=0 nomodifiable
+	autocmd! BufUnload <buffer> unlet t:bufferName
 	nnoremap <buffer> <CR> :call SetFont(b:fonts[line(".")-1], GetCurrentFontSize())<CR>
     nnoremap <buffer> q <C-W>q
 	nnoremap <buffer> <2-LeftMouse> :call SetFont(b:fonts[line(".")-1], GetCurrentFontSize())<CR>
@@ -161,4 +184,14 @@ function! UseableFonts()
     endfor
     return g:avialable_fonts
 endfunction
+
+if has("gui")
+	if exists("g:fontman_font")
+		if exists("g:fontman_size")
+			call SetFont(g:fontman_font, g:fontman_size)
+		else
+			call SetFont(g:fontman_font, g:default_size)
+		endif
+	endif
+endif
 
