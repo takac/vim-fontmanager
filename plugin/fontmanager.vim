@@ -9,7 +9,11 @@
 " let g:fontman_syntax_map = { "java" : "Consolas", "txt" : "Fixedsys" }
 "
 "let g:fonts = ["Inconsolata", "Ubuntu Mono", "Consolas", "Terminal"]
+
 let g:default_size = 13
+
+let s:current_dir = expand("<sfile>:p:h")
+let s:font_file = s:current_dir . "\\fonts.txt"
 
 function! SetFontAndStyle(name, style, size)
 	exec "set guifont=". FormatFont(a:name, a:style, a:size)
@@ -173,8 +177,14 @@ endfunction
 function! UseableFonts()
     if exists("g:avialable_fonts")
         return g:avialable_fonts
+	elseif filereadable(s:font_file)
+		return ReadUseableFontsFile()
     endif
+    call UpdateUseableFonts()
+    return g:avialable_fonts
+endfunction
 
+function! UpdateUseableFonts()
     let fonts = WindowsReadFonts()
     let g:avialable_fonts = []
     for i in fonts
@@ -182,8 +192,18 @@ function! UseableFonts()
             call add(g:avialable_fonts, i)
         endif
     endfor
-    return g:avialable_fonts
+	call PersistUseableFonts(g:avialable_fonts)
 endfunction
+
+function! PersistUseableFonts(fonts)
+	call writefile(a:fonts, s:font_file)
+endfunction
+
+function! ReadUseableFontsFile()
+	let g:avialable_fonts = readfile(s:font_file)
+	return g:avialable_fonts 
+endfunction
+
 
 if has("gui")
 	if exists("g:fontman_font")
@@ -195,3 +215,5 @@ if has("gui")
 	endif
 endif
 
+command! FontSizeIncrease :call IncreaseFontSize(1)
+command! FontSizeDecrease :call IncreaseFontSize(-1)
