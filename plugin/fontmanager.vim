@@ -10,6 +10,10 @@
 "
 "let g:fonts = ["Inconsolata", "Ubuntu Mono", "Consolas", "Terminal"]
 
+if !has("gui") || &cp || version < 700
+	finish
+end
+
 let g:default_size = 13
 
 let s:current_dir = expand("<sfile>:p:h")
@@ -132,6 +136,20 @@ function! FormatFont(name, style, size)
     endif
 endfunction
 
+function! SetFontStyle(style)
+	let font = GetCurrentFont()
+	let size = GetCurrentFontSize()
+	if a:style == "italic" || a:style == "i"
+		call SetFontAndStyle(font, "i", size)
+	elseif a:style == "bold" || a:style == "b"
+		call SetFontAndStyle(font, "b", size)
+	elseif a:style == "italic bold" || a:style == "bi" || a:style == "ib" || a:style == "bold italic"
+		call SetFontAndStyle(font, "bi", size)
+	else
+		call SetFontAndStyle(font, "", size)
+	endif
+endfunction
+
 function! WindowsReadFonts()
     let tmp_file = expand("$TMP") . '\out.txt'
     exec 'silent !regedit /e ' . tmp_file . ' "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"'
@@ -156,13 +174,12 @@ function! ShowFontList()
 			exec "buffer " . t:bufferName
 		endif
 	else
-		let t:bufferName = "font_1"
+		let t:bufferName = "font_list"
 		topleft new
 		silent! exec "edit " . t:bufferName
-	endif
 	setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile nowrap modifiable
 	0,$d
-    let b:fonts = sort(UseableFonts())
+    let b:fonts = sort(ListUseableFonts())
     for i in b:fonts
         call append("$", i)
     endfor
@@ -172,9 +189,10 @@ function! ShowFontList()
 	nnoremap <buffer> <CR> :call SetFont(b:fonts[line(".")-1], GetCurrentFontSize())<CR>
     nnoremap <buffer> q <C-W>q
 	nnoremap <buffer> <2-LeftMouse> :call SetFont(b:fonts[line(".")-1], GetCurrentFontSize())<CR>
+	endif
 endfunction
   
-function! UseableFonts()
+function! ListUseableFonts()
     if exists("g:avialable_fonts")
         return g:avialable_fonts
 	elseif filereadable(s:font_file)
@@ -204,6 +222,25 @@ function! ReadUseableFontsFile()
 	return g:avialable_fonts 
 endfunction
 
+function! ListStyles()
+	return ["None", "Bold", "Italic", "Bold Italic"]
+endfunction
+
+function! CompleteStyles(A, L, P)
+	let fonts = ""
+	for i in ListStyles()
+		let fonts = fonts . i . "\n"
+	endfor
+	return fonts
+endfunction
+
+function! CompleteFonts(A, L, P)
+	let fonts = ""
+	for i in ListUseableFonts()
+		let fonts = fonts . i . "\n"
+	endfor
+	return fonts
+endfunction
 
 if has("gui")
 	if exists("g:fontman_font")
@@ -213,7 +250,13 @@ if has("gui")
 			call SetFont(g:fontman_font, g:default_size)
 		endif
 	endif
+	if exists("g:fontman_style")
+		call SetFontStyle(g:fontman_style)
+	endif
 endif
 
-command! FontSizeIncrease :call IncreaseFontSize(1)
-command! FontSizeDecrease :call IncreaseFontSize(-1)
+command! -nargs=0 FontSizeIncrease call IncreaseFontSize(1)
+command! -nargs=0 FontSizeDecrease call IncreaseFontSize(-1)
+command! -nargs=0 FontListShow call ShowFontList()
+command! -nargs=* -complete=custom,CompleteStyles FontSetStyle call SetFontStyle("<args>")
+command! -nargs=* -complete=custom,CompleteFonts FontSet call SetFont("<args>", GetCurrentFontSize())
