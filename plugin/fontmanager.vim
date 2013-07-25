@@ -68,6 +68,9 @@ function! CheckFont(name)
 endfunction
 
 " can be negative
+function! DecreaseFontSize(n)
+    call SetFont(GetCurrentFont(), GetCurrentFontSize() - a:n)
+endfunction
 function! IncreaseFontSize(n)
     call SetFont(GetCurrentFont(), GetCurrentFontSize() + a:n)
 endfunction
@@ -100,24 +103,20 @@ function! GetCurrentFontSize()
     return g:default_size
 endfunction
 
-function! SetBoldFont(name, size)
-    exec "set guifont=". FormatFont(a:name, "b", a:size)
-endfunction
-
-    
 function! GetCurrentFont()
     let font = &guifont
 
     if font == ""
-        " Monospace
-        " Not set! Probably a console
+        " Not set!
+        " Probably Monospace
         return "Monospace"
     elseif has("gui_macvim")
+        let name = split(font, ":")[0]
         " dostuff ..
-        " split(":")
     elseif has("gui_gtk2") || has("gui_gnome")
         if font =~? " \\d\\+$"
             let name = matchstr(font, ".* \\ze\\d\\+")
+            let name = substitute(name, "\\s*$", "", "")
             return name
         else
             return font
@@ -130,13 +129,32 @@ function! GetCurrentFont()
     return font
 endfunction
 
+function! ExpandStyle(style)
+	if a:style == "italic" || a:style == "i"
+		return "Italic"
+	elseif a:style == "bold" || a:style == "b"
+		return "Bold"
+	elseif a:style == "italic bold" || a:style == "bi" || a:style == "ib" || a:style == "bold italic"
+		return "Bold Italic"
+    else 
+        return ""
+    endif
+endfunction
+
 function! FormatFont(name, style, size)
     if has("gui_macvim")
         let name = substitute(a:name, " ", "\\\\ ", "g")
         return name . ":h" . a:size
     elseif has("gui_gtk2") || has("gui_gnome")
-        let name = substitute(a:name, " ", "\\\\ ", "g")
-        return name . "\\ " . a:size
+        let font = substitute(a:name, " Bold", "", "g")
+        let font = substitute(font, " Italic", "", "g")
+        let expanded_style = ExpandStyle(a:style)
+        if expanded_style != ""
+            let font = font . " " . expanded_style . " " . a:size
+        else
+            let font = font . " " . a:size
+        endif
+        return substitute(font, " ", "\\\\ ", "g")
     elseif has("gui_win32") || has("gui_win64")
         let name = substitute(a:name, " ", "_", "g")[:30]
         return name . ":" . a:style . ":h" . a:size
@@ -170,7 +188,7 @@ function! LinuxReadFonts()
 endfunction
 
 function! WindowsReadFonts()
-    let tmp_file = expand("$TMP") . '\out.txt'
+    let tmp_file = expand("$TMP") . '\\out.txt'
     exec 'silent !regedit /e ' . tmp_file . ' "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"'
     let fonts = []
     for line in readfile(tmp_file)
@@ -181,6 +199,16 @@ function! WindowsReadFonts()
         endif
     endfor
     return fonts
+endfunction
+
+function! MacOsxReadFonts()
+    " Possible python solution on OS X 10.5+
+    " import Cocoa
+    " manager = Cocoa.NSFontManager.sharedFontManager()
+    " font_families = list(manager.availableFontFamilies())
+    "
+    " check for fc-list binary, if not then try python
+
 endfunction
 
 function! ShowFontList()
@@ -226,7 +254,8 @@ function! UpdateUseableFonts()
         let fonts = WindowsReadFonts()
     elseif has("unix") && system("uname") == "Linux\n"
         let fonts = LinuxReadFonts()
-    elseif has("mac") "???
+    if has("gui_macvim")
+        let fonts = MacOsxReadFonts()
     endif
 
     let g:avialable_fonts = []
@@ -280,8 +309,10 @@ if has("gui")
 	endif
 endif
 
-command! -nargs=0 FontSizeIncrease call IncreaseFontSize(1)
-command! -nargs=0 FontSizeDecrease call IncreaseFontSize(-1)
+command! -nargs=* FontSizeIncrease call IncreaseFontSize(<args>)
+command! -nargs=* FontSizeIncrement call IncreaseFontSize(1)
+command! -nargs=* FontSizeDecrease call DecreaseFontSize(<args>)
+command! -nargs=* FontSizeDecrement call DecreaseFontSize(1)
 command! -nargs=0 FontListShow call ShowFontList()
 command! -nargs=* -complete=custom,CompleteStyles FontSetStyle call SetFontStyle("<args>")
 command! -nargs=* -complete=custom,CompleteFonts FontSet call SetFont("<args>", GetCurrentFontSize())
