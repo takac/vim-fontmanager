@@ -17,7 +17,15 @@ end
 let g:default_size = 12
 
 let s:current_dir = expand("<sfile>:p:h")
-let s:font_file = s:current_dir . "\\fonts.txt"
+
+function! GetUseableFontFile()
+    let font_file = "fonts.txt"
+    if has("unix")
+        return s:current_dir . "/" . font_file
+    else
+        return s:current_dir . "\\" . font_file
+    endif
+endfunction
 
 function! SetFontAndStyle(name, style, size)
 	exec "set guifont=". FormatFont(a:name, a:style, a:size)
@@ -206,7 +214,7 @@ endfunction
 function! ListUseableFonts()
     if exists("g:avialable_fonts")
         return g:avialable_fonts
-	elseif filereadable(s:font_file)
+	elseif filereadable(GetUseableFontFile())
 		return ReadUseableFontsFile()
     endif
     call UpdateUseableFonts()
@@ -231,11 +239,11 @@ function! UpdateUseableFonts()
 endfunction
 
 function! PersistUseableFonts(fonts)
-	call writefile(a:fonts, s:font_file)
+	call writefile(a:fonts, GetUseableFontFile())
 endfunction
 
 function! ReadUseableFontsFile()
-	let g:avialable_fonts = readfile(s:font_file)
+	let g:avialable_fonts = readfile(GetUseableFontFile())
 	return g:avialable_fonts 
 endfunction
 
@@ -277,3 +285,4 @@ command! -nargs=0 FontSizeDecrease call IncreaseFontSize(-1)
 command! -nargs=0 FontListShow call ShowFontList()
 command! -nargs=* -complete=custom,CompleteStyles FontSetStyle call SetFontStyle("<args>")
 command! -nargs=* -complete=custom,CompleteFonts FontSet call SetFont("<args>", GetCurrentFontSize())
+command! -nargs=0 FontResetUseableList call UpdateUseableFonts()
