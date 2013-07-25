@@ -14,7 +14,7 @@ if !has("gui") || &cp || version < 700
 	finish
 end
 
-let g:default_size = 13
+let g:default_size = 12
 
 let s:current_dir = expand("<sfile>:p:h")
 let s:font_file = s:current_dir . "\\fonts.txt"
@@ -42,15 +42,15 @@ endfunction
 
 function! CheckFont(name)
     let current = &guifont
-    let check = FormatFont(a:name,"", 12)
+    let check = FormatFont(a:name,"", 11)
 	let t_list = [ check ]
 	call writefile(t_list, expand("~") . "/tmp-font.txt", "")
     try
 		exec "set guifont=" . check
     catch /Invalid.*/
     endtry
-    " echom check . " == " . &guifont
-    if &guifont == check
+    "echo substitute(check, "\\", "", "g") . " == " . &guifont
+    if &guifont == substitute(check, "\\", "", "g")
         let &guifont = current
         return 1
     else
@@ -77,22 +77,19 @@ function! GetCurrentFontSize()
     elseif has("gui_macvim")
         " dostuff ..
         " split(":")
-    elseif has("gui_gtk2")
-        " dostuff ..
-        " split(":")
+    elseif has("gui_gtk2") || has("gui_gnome")
+        if font =~? "\\d\\+$"
+            let size = matchstr(font, " \\zs\\d\\+")
+            return size
+        endif
     elseif has("gui_win32") || has("gui_win64")
         if font =~? ":h\\d\\+"
 			let size = matchstr(font, ":h\\zs\\d\\+") 
-			echo size
             return size
-        else
-			" If size has been removed from guifont for some reason...
-            return g:default_size
         endif
-        return name
-    else
-        " OH NO Console!
     endif
+    " If size has been removed from guifont for some reason...
+    return g:default_size
 endfunction
 
 function! SetBoldFont(name, size)
@@ -104,29 +101,33 @@ function! GetCurrentFont()
     let font = &guifont
 
     if font == ""
+        " Monospace
         " Not set! Probably a console
-        return ""
+        return "Monospace"
     elseif has("gui_macvim")
         " dostuff ..
         " split(":")
-    elseif has("gui_gtk2")
-        " dostuff ..
-        " split(":")
+    elseif has("gui_gtk2") || has("gui_gnome")
+        if font =~? " \\d\\+$"
+            let name = matchstr(font, ".* \\ze\\d\\+")
+            return name
+        else
+            return font
+        endif
     elseif has("gui_win32") || has("gui_win64")
         let name = split(font, ":")[0]
         let name = substitute(name, "_", " ", "g")
         return name
-    else
-        " OH NO Console!
     endif
+    return font
 endfunction
 
 function! FormatFont(name, style, size)
     if has("gui_macvim")
-        let name = substitute(a:name, " ", "\\ ", "g")
+        let name = substitute(a:name, " ", "\\\\ ", "g")
         return name . ":h" . a:size
-    elseif has("gui_gtk2")
-        let name = substitute(a:name, " ", "\\ ", "g")
+    elseif has("gui_gtk2") || has("gui_gnome")
+        let name = substitute(a:name, " ", "\\\\ ", "g")
         return name . "\\ " . a:size
     elseif has("gui_win32") || has("gui_win64")
         let name = substitute(a:name, " ", "_", "g")[:30]
@@ -150,6 +151,16 @@ function! SetFontStyle(style)
 	endif
 endfunction
 
+function! LinuxReadFonts()
+    let list = split(system('fc-list | cut -d":" -f2 | sed "s/^ //"'), "\n")
+    let d = {}
+    for i in list
+        let d[i] = ''
+    endfor
+    let d["Monospace"] = ""
+    return sort(keys(d))
+endfunction
+
 function! WindowsReadFonts()
     let tmp_file = expand("$TMP") . '\out.txt'
     exec 'silent !regedit /e ' . tmp_file . ' "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"'
@@ -165,7 +176,7 @@ function! WindowsReadFonts()
 endfunction
 
 function! ShowFontList()
-	if exists("t:bufferName")
+	if exists("t:bufferName") && bufnr(t:bufferName) > -1
 		let n = bufwinnr(t:bufferName)
 		if n > -1
 			exec n . " wincmd w"
@@ -203,7 +214,13 @@ function! ListUseableFonts()
 endfunction
 
 function! UpdateUseableFonts()
-    let fonts = WindowsReadFonts()
+    if has("win")
+        let fonts = WindowsReadFonts()
+    elseif has("unix") && system("uname") == "Linux\n"
+        let fonts = LinuxReadFonts()
+    elseif has("mac") "???
+    endif
+
     let g:avialable_fonts = []
     for i in fonts
         if CheckFont(i)
