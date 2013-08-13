@@ -7,13 +7,10 @@ Font manager for Vim
 * Quickly change fonts
 * Quickly change font style and/or size
 
-# Only support for Linux and Windows
-# Does NOT currently support Mac OSX
-# Currently don't have a Mac to develop on :(
-# Please do help and contribute to fix this :)
-# Please contact me if you have any questions
+#### Only support for Linux and Windows. Does NOT currently support Mac OSX.
+#### Please do help and contribute to fix this :) Please contact me if you have any questions.
 
-### Usage
+## Usage
 
 This only works in a vim GUI - you can't set fonts from Vim in terminal
 
@@ -67,6 +64,10 @@ Fontmanager also frees up some `.vimrc` configuration. You can set this in your
 
 This means no more fiddling with escaping with spaces and correcting the format
 to match your OS. This font will be loaded when fontmanager starts.
+
+    let g:fontman_size = 14
+    
+To set font size easily in your `.vimrc`.
 
 ### Installation
 I recommend installing using [Vundle](https://github.com/gmarik/vundle):
