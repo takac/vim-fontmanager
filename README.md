@@ -19,7 +19,7 @@ This only works in a vim GUI - you can't set fonts from Vim in terminal
 
 To list avaliable fonts
 
-    :FontListShow
+    :FontList
 
 This will create a new window and display a list of fonts. This may take a
 second to work out which fonts can be used.
