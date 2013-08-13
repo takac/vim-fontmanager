@@ -9,7 +9,7 @@ let g:default_size = 12
 
 let s:current_dir = expand("<sfile>:p:h")
 
-function! GetUseableFontFile()
+function! s:GetUseableFontFile()
     let font_file = "fonts.txt"
     if has("unix")
         return s:current_dir . "/" . font_file
@@ -18,19 +18,19 @@ function! GetUseableFontFile()
     endif
 endfunction
 
-function! SetFontAndStyle(name, style, size)
-	exec "set guifont=". FormatFont(a:name, a:style, a:size)
+function! s:SetFontAndStyle(name, style, size)
+	exec "set guifont=". s:FormatFont(a:name, a:style, a:size)
 endfunction
 
 function! SetFont(name, size)
     if a:name =~? "\\<bold\\>.*\\<italic\\>" || a:name =~? "\\<italic\\>.*\\<bold\\>"
-        exec "set guifont=". FormatFont(a:name, "bi", a:size)
+        exec "set guifont=". s:FormatFont(a:name, "bi", a:size)
     elseif a:name =~? "\\<bold\\>"
-        exec "set guifont=". FormatFont(a:name, "b", a:size)
+        exec "set guifont=". s:FormatFont(a:name, "b", a:size)
     elseif a:name =~? "\\<italic\\>"
-        exec "set guifont=". FormatFont(a:name, "i", a:size)
+        exec "set guifont=". s:FormatFont(a:name, "i", a:size)
     else
-        exec "set guifont=". FormatFont(a:name, "", a:size)
+        exec "set guifont=". s:FormatFont(a:name, "", a:size)
     endif
 endfunction
 
@@ -39,9 +39,9 @@ endfunction
 "    Mac: font\ name:hSIZE:format
 "    Windows: font_name\ SIZE
 
-function! CheckFont(name)
+function! s:CheckFont(name)
     let current = &guifont
-    let check = FormatFont(a:name,"", 11)
+    let check = s:FormatFont(a:name,"", 11)
 	let t_list = [ check ]
 	call writefile(t_list, expand("~") . "/tmp-font.txt", "")
     try
@@ -59,15 +59,15 @@ function! CheckFont(name)
 endfunction
 
 " can be negative
-function! DecreaseFontSize(n)
+function! s:DecreaseFontSize(n)
     call SetFont(GetCurrentFont(), GetCurrentFontSize() - a:n)
 endfunction
 
-function! IncreaseFontSize(n)
+function! s:IncreaseFontSize(n)
     call SetFont(GetCurrentFont(), GetCurrentFontSize() + a:n)
 endfunction
 
-function! SetFontSize(n)
+function! s:SetFontSize(n)
     call SetFont(GetCurrentFont(), a:n)
 endfunction
 
@@ -122,7 +122,7 @@ function! GetCurrentFont()
     return font
 endfunction
 
-function! ExpandStyle(style)
+function! s:ExpandStyle(style)
 	if a:style == "italic" || a:style == "i"
 		return "Italic"
 	elseif a:style == "bold" || a:style == "b"
@@ -134,14 +134,14 @@ function! ExpandStyle(style)
     endif
 endfunction
 
-function! FormatFont(name, style, size)
+function! s:FormatFont(name, style, size)
     if has("gui_macvim")
         let name = substitute(a:name, " ", "\\\\ ", "g")
         return name . ":h" . a:size
     elseif has("gui_gtk2") || has("gui_gnome")
         let font = substitute(a:name, " Bold", "", "g")
         let font = substitute(font, " Italic", "", "g")
-        let expanded_style = ExpandStyle(a:style)
+        let expanded_style = s:ExpandStyle(a:style)
         if expanded_style != ""
             let font = font . " " . expanded_style . " " . a:size
         else
@@ -156,21 +156,21 @@ function! FormatFont(name, style, size)
     endif
 endfunction
 
-function! SetFontStyle(style)
+function! s:SetFontStyle(style)
 	let font = GetCurrentFont()
 	let size = GetCurrentFontSize()
 	if a:style == "italic" || a:style == "i"
-		call SetFontAndStyle(font, "i", size)
+		call s:SetFontAndStyle(font, "i", size)
 	elseif a:style == "bold" || a:style == "b"
-		call SetFontAndStyle(font, "b", size)
+		call s:SetFontAndStyle(font, "b", size)
 	elseif a:style == "italic bold" || a:style == "bi" || a:style == "ib" || a:style == "bold italic"
-		call SetFontAndStyle(font, "bi", size)
+		call s:SetFontAndStyle(font, "bi", size)
 	else
-		call SetFontAndStyle(font, "", size)
+		call s:SetFontAndStyle(font, "", size)
 	endif
 endfunction
 
-function! LinuxReadFonts()
+function! s:LinuxReadFonts()
     let list = split(system('fc-list | cut -d":" -f2 | sed "s/^ //"'), "\n")
     let d = {}
     for i in list
@@ -180,7 +180,7 @@ function! LinuxReadFonts()
     return sort(keys(d))
 endfunction
 
-function! WindowsReadFonts()
+function! s:WindowsReadFonts()
     let tmp_file = expand("$TMP") . '\\out.txt'
     exec 'silent !regedit /e ' . tmp_file . ' "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"'
     let fonts = []
@@ -194,7 +194,7 @@ function! WindowsReadFonts()
     return fonts
 endfunction
 
-function! MacOsxReadFonts()
+function! s:MacOsxReadFonts()
     " Possible python solution on OS X 10.5+
     " import Cocoa
     " manager = Cocoa.NSFontManager.sharedFontManager()
@@ -203,7 +203,7 @@ function! MacOsxReadFonts()
     " check for fc-list binary, if not then try python
 endfunction
 
-function! ShowFontList()
+function! s:ShowFontList()
 	if exists("t:bufferName") && bufnr(t:bufferName) > -1
 		let n = bufwinnr(t:bufferName)
 		if n > -1
@@ -218,7 +218,7 @@ function! ShowFontList()
 		silent! exec "edit " . t:bufferName
 	setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile nowrap modifiable
 	0,$d
-    let b:fonts = sort(ListUseableFonts())
+    let b:fonts = sort(s:ListUseableFonts())
     for i in b:fonts
         call append("$", i)
     endfor
@@ -231,64 +231,64 @@ function! ShowFontList()
 	endif
 endfunction
   
-function! ListUseableFonts()
+function! s:ListUseableFonts()
     if exists("g:avialable_fonts")
         return g:avialable_fonts
-	elseif filereadable(GetUseableFontFile())
-		return ReadUseableFontsFile()
+	elseif filereadable(s:GetUseableFontFile())
+		return s:ReadUseableFontsFile()
     endif
-    call UpdateUseableFonts()
+    call s:UpdateUseableFonts()
     return g:avialable_fonts
 endfunction
 
-function! UpdateUseableFonts()
+function! s:UpdateUseableFonts()
     if has("win")
-        let fonts = WindowsReadFonts()
+        let fonts = s:WindowsReadFonts()
     elseif has("unix") && system("uname") == "Linux\n"
-        let fonts = LinuxReadFonts()
+        let fonts = s:LinuxReadFonts()
     elseif has("gui_macvim")
-        let fonts = MacOsxReadFonts()
+        let fonts = s:MacOsxReadFonts()
     endif
 
     let g:avialable_fonts = []
     for i in fonts
-        if CheckFont(i)
+        if s:CheckFont(i)
             call add(g:avialable_fonts, i)
         endif
     endfor
-	call PersistUseableFonts(g:avialable_fonts)
+	call s:PersistUseableFonts(g:avialable_fonts)
 endfunction
 
-function! PersistUseableFonts(fonts)
-	call writefile(a:fonts, GetUseableFontFile())
+function! s:PersistUseableFonts(fonts)
+	call writefile(a:fonts, s:GetUseableFontFile())
 endfunction
 
-function! ReadUseableFontsFile()
-	let g:avialable_fonts = readfile(GetUseableFontFile())
+function! s:ReadUseableFontsFile()
+	let g:avialable_fonts = readfile(s:GetUseableFontFile())
 	return g:avialable_fonts 
 endfunction
 
-function! ListStyles()
+function! s:ListStyles()
 	return ["None", "Bold", "Italic", "Bold Italic"]
 endfunction
 
-function! CompleteStyles(A, L, P)
+function! s:CompleteStyles(A, L, P)
 	let fonts = ""
-	for i in ListStyles()
+	for i in s:ListStyles()
 		let fonts = fonts . i . "\n"
 	endfor
 	return fonts
 endfunction
 
-function! CompleteFonts(A, L, P)
+function! s:CompleteFonts(A, L, P)
 	let fonts = ""
-	for i in ListUseableFonts()
+	for i in s:ListUseableFonts()
 		let fonts = fonts . i . "\n"
 	endfor
 	return fonts
 endfunction
 
-function! CompleteSize(A, L, P)
+function! s:CompleteSize(A, L, P)
     let current_size = GetCurrentFontSize()
     let sizes = []
     let i = 1
@@ -309,12 +309,12 @@ if has("gui_running")
 		endif
 	endif
 	if exists("g:fontman_style")
-		call SetFontStyle(g:fontman_style)
+		call s:SetFontStyle(g:fontman_style)
 	endif
 endif
 
-command! -nargs=* -complete=customlist,CompleteSize FontSize call SetFontSize(<args>)
-command! -nargs=0 FontListShow call ShowFontList()
-command! -nargs=* -complete=custom,CompleteStyles FontStyle call SetFontStyle("<args>")
-command! -nargs=* -complete=custom,CompleteFonts Font call SetFont("<args>", GetCurrentFontSize())
-command! -nargs=0 FontResetUseableList call UpdateUseableFonts()
+command! -nargs=* -complete=customlist,s:CompleteSize FontSize call s:SetFontSize(<args>)
+command! -nargs=0 FontList call s:ShowFontList()
+command! -nargs=* -complete=custom,s:CompleteStyles FontStyle call s:SetFontStyle("<args>")
+command! -nargs=* -complete=custom,s:CompleteFonts Font call SetFont("<args>", GetCurrentFontSize())
+command! -nargs=0 FontResetUseableList call s:UpdateUseableFonts()

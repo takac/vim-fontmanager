@@ -16,7 +16,7 @@ This only works in a vim GUI - you can't set fonts from Vim in terminal
 
 To list avaliable fonts
 
-    :FontListShow
+    :FontList
 
 This will create a new window and display a list of fonts. This may take a
 second to work out which fonts can be used.
@@ -66,8 +66,9 @@ This means no more fiddling with escaping with spaces and correcting the format
 to match your OS. This font will be loaded when fontmanager starts.
 
     let g:fontman_size = 14
+    let g:fontman_style = "bold"
     
-To set font size easily in your `.vimrc`.
+To set font size and style easily in your `.vimrc`.
 
 ### Installation
 I recommend installing using [Vundle](https://github.com/gmarik/vundle):
