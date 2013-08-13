@@ -1,16 +1,7 @@
 " Author: Tom Cammann 
-"
-" Cycle through common fonts
-" different fonts for different syntaxs
-" IN VIMRC =
-"
-" let g:fontman_font = "Ubuntu Mono derivative Powerline"
-" let g:fontman_size = 13
-" let g:fontman_syntax_map = { "java" : "Consolas", "txt" : "Fixedsys" }
-"
-"let g:fonts = ["Inconsolata", "Ubuntu Mono", "Consolas", "Terminal"]
+" Version: 0.2
 
-if !has("gui") || &cp || version < 700
+if !has("gui_running") || &cp || version < 700
 	finish
 end
 
@@ -71,9 +62,11 @@ endfunction
 function! DecreaseFontSize(n)
     call SetFont(GetCurrentFont(), GetCurrentFontSize() - a:n)
 endfunction
+
 function! IncreaseFontSize(n)
     call SetFont(GetCurrentFont(), GetCurrentFontSize() + a:n)
 endfunction
+
 function! SetFontSize(n)
     call SetFont(GetCurrentFont(), a:n)
 endfunction
@@ -208,7 +201,6 @@ function! MacOsxReadFonts()
     " font_families = list(manager.availableFontFamilies())
     "
     " check for fc-list binary, if not then try python
-
 endfunction
 
 function! ShowFontList()
@@ -254,7 +246,7 @@ function! UpdateUseableFonts()
         let fonts = WindowsReadFonts()
     elseif has("unix") && system("uname") == "Linux\n"
         let fonts = LinuxReadFonts()
-    if has("gui_macvim")
+    elseif has("gui_macvim")
         let fonts = MacOsxReadFonts()
     endif
 
@@ -296,7 +288,19 @@ function! CompleteFonts(A, L, P)
 	return fonts
 endfunction
 
-if has("gui")
+function! CompleteSize(A, L, P)
+    let current_size = GetCurrentFontSize()
+    let sizes = []
+    let i = 1
+    while i < 6
+        call add(sizes, string(current_size + i))
+        call add(sizes, string(current_size - i))
+        let i += 1
+    endwhile
+    return sizes
+endfunction
+
+if has("gui_running")
 	if exists("g:fontman_font")
 		if exists("g:fontman_size")
 			call SetFont(g:fontman_font, g:fontman_size)
@@ -309,11 +313,8 @@ if has("gui")
 	endif
 endif
 
-command! -nargs=* FontSizeIncrease call IncreaseFontSize(<args>)
-command! -nargs=* FontSizeIncrement call IncreaseFontSize(1)
-command! -nargs=* FontSizeDecrease call DecreaseFontSize(<args>)
-command! -nargs=* FontSizeDecrement call DecreaseFontSize(1)
+command! -nargs=* -complete=customlist,CompleteSize FontSize call SetFontSize(<args>)
 command! -nargs=0 FontListShow call ShowFontList()
-command! -nargs=* -complete=custom,CompleteStyles FontSetStyle call SetFontStyle("<args>")
-command! -nargs=* -complete=custom,CompleteFonts FontSet call SetFont("<args>", GetCurrentFontSize())
+command! -nargs=* -complete=custom,CompleteStyles FontStyle call SetFontStyle("<args>")
+command! -nargs=* -complete=custom,CompleteFonts Font call SetFont("<args>", GetCurrentFontSize())
 command! -nargs=0 FontResetUseableList call UpdateUseableFonts()
