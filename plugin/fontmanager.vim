@@ -242,12 +242,14 @@ function! s:ListUseableFonts()
 endfunction
 
 function! s:UpdateUseableFonts()
-    if has("win")
+    if has("win32") || has("win64")
         let fonts = s:WindowsReadFonts()
     elseif has("unix") && system("uname") == "Linux\n"
         let fonts = s:LinuxReadFonts()
     elseif has("gui_macvim")
         let fonts = s:MacOsxReadFonts()
+	else
+		throw "Font manager could not determine OS being used, aborting."
     endif
 
     let g:avialable_fonts = []

@@ -70,6 +70,9 @@ to match your OS. This font will be loaded when fontmanager starts.
     
 To set font size and style easily in your `.vimrc`.
 
+Font manager stores a cache of the currently available fonts, if a new font is
+added this cache needs to be updated. Run `:FontResetUseableList`.
+
 ### Installation
 I recommend installing using [Vundle](https://github.com/gmarik/vundle):
 
